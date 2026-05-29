@@ -132,6 +132,7 @@ func main() {
 
 		hs := &handlers.HttpServer{GrpcSrv: client}
 		http.HandleFunc("/update", handlers.EnableCORS(hs.Update))
+		http.HandleFunc("/read", handlers.EnableCORS(hs.Read))
 
 		server := &http.Server{
 			Addr:      rest_port,
