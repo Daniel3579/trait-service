@@ -20,6 +20,10 @@ type UserTrait struct {
 	Weight    int       `json:"weight"`
 }
 
+type IdRequest struct {
+	UserId int `json:"user_id"`
+}
+
 // ––––––––––––––––––––––––––––––––––––––––––
 
 type HttpServer struct {
@@ -42,6 +46,44 @@ func EnableCORS(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+
+func (h *HttpServer) Read(w http.ResponseWriter, r *http.Request) {
+	var reqBody IdRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	accessToken := r.Header.Get("Authorization")
+	if accessToken == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	md := metadata.Pairs("authorization_access", accessToken)
+	ctx := metadata.NewOutgoingContext(r.Context(), md)
+
+	grpcReq := &trait_pb.IdRequest{UserId: int32(reqBody.UserId)}
+	resp, err := h.GrpcSrv.Read(ctx, grpcReq)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	marshaler := protojson.MarshalOptions{
+		EmitUnpopulated: true, // выводить нулевые поля
+		UseProtoNames:   true, // snake_case как в proto
+	}
+	jsonBytes, err := marshaler.Marshal(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonBytes)
+}
 
 func (h *HttpServer) Update(w http.ResponseWriter, r *http.Request) {
 	var reqBody UserTrait

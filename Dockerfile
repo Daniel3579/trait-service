@@ -7,7 +7,6 @@ RUN CGO_ENABLED=0 go build -o /app/bin/auth ./cmd
 
 FROM alpine:3.20
 LABEL org.opencontainers.image.source=https://github.com/Daniel3579/trait-service
-LABEL org.opencontainers.image.source=https://github.com/Daniel3579/course-work
 WORKDIR /app
 COPY --from=builder /app/bin/auth /app/auth
 CMD ["/app/auth"]
